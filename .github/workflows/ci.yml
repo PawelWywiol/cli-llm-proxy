@@ -28,7 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm ci
+        run: pnpm run ci
 
       - name: Type check
         run: pnpm build
