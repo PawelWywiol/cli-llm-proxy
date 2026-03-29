@@ -1,0 +1,32 @@
+[Unit]
+Description=CLI LLM Proxy - OpenAI-compatible proxy for local CLI tools
+After=network.target
+
+[Service]
+Type=simple
+User=cli-llm-proxy
+Group=cli-llm-proxy
+WorkingDirectory=/opt/cli-llm-proxy
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=LOG_LEVEL=info
+# Set your API key here or use EnvironmentFile
+# Environment=PROXY_API_KEY=your-secret-key
+# EnvironmentFile=/opt/cli-llm-proxy/.env
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/cli-llm-proxy
+
+[Install]
+WantedBy=multi-user.target

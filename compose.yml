@@ -1,0 +1,28 @@
+services:
+  cli-llm-proxy:
+    container_name: cli-llm-proxy
+    build: .
+    ports:
+      - "${PORT:-11434}:11434"
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PROXY_API_KEY=${PROXY_API_KEY:-}
+    volumes:
+      - ./config.json:/app/config.json:ro
+      # Mount host CLI binaries (adjust paths as needed)
+      # - /usr/local/bin/claude:/usr/local/bin/claude:ro
+      # - /usr/local/bin/gemini:/usr/local/bin/gemini:ro
+      # - /usr/local/bin/gh:/usr/local/bin/gh:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:11434/health').then(r=>{if(!r.ok)throw 1})",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3

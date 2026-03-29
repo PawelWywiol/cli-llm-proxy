@@ -1,0 +1,92 @@
+{
+  "name": "cli-llm-proxy",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OpenAI-compatible HTTP proxy that routes LLM requests to local CLI tools",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "ci": "biome ci .",
+    "prepare": "husky",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major"
+  },
+  "lint-staged": {
+    "*.{ts,json}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "standard-version": {
+    "header": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n",
+    "types": [
+      {
+        "type": "feat",
+        "section": "Features"
+      },
+      {
+        "type": "fix",
+        "section": "Bug Fixes"
+      },
+      {
+        "type": "chore",
+        "hidden": true
+      },
+      {
+        "type": "docs",
+        "section": "Documentation"
+      },
+      {
+        "type": "style",
+        "hidden": true
+      },
+      {
+        "type": "refactor",
+        "section": "Code Refactoring"
+      },
+      {
+        "type": "perf",
+        "section": "Performance Improvements"
+      },
+      {
+        "type": "test",
+        "hidden": true
+      },
+      {
+        "type": "build",
+        "hidden": true
+      },
+      {
+        "type": "ci",
+        "hidden": true
+      }
+    ],
+    "commitUrlFormat": "{{host}}/{{owner}}/{{repository}}/commit/{{hash}}",
+    "compareUrlFormat": "{{host}}/{{owner}}/{{repository}}/compare/{{previousTag}}...{{currentTag}}"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.0",
+    "fastify": "^4.28.0",
+    "fastify-plugin": "^5.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.9",
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@types/node": "^22.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "pino-pretty": "^11.0.0",
+    "standard-version": "^9.5.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}

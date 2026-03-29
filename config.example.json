@@ -1,0 +1,58 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 11434,
+    "apiKey": "your-secret-api-key"
+  },
+  "adapters": {
+    "claude": {
+      "enabled": true,
+      "command": "claude",
+      "extraArgs": [],
+      "timeoutMs": 120000,
+      "maxConcurrent": 2,
+      "modelAliases": [
+        "claude",
+        "claude-code",
+        "claude-sonnet",
+        "claude-opus",
+        "claude-haiku",
+        "claude-3",
+        "claude-3-5",
+        "claude-3-7"
+      ]
+    },
+    "gemini": {
+      "enabled": false,
+      "command": "gemini",
+      "extraArgs": [],
+      "timeoutMs": 120000,
+      "maxConcurrent": 2,
+      "modelAliases": [
+        "gemini",
+        "gemini-pro",
+        "gemini-flash",
+        "gemini-2",
+        "gemini-2.5",
+        "google"
+      ]
+    },
+    "copilot": {
+      "enabled": false,
+      "command": "gh",
+      "extraArgs": ["copilot", "explain"],
+      "timeoutMs": 120000,
+      "maxConcurrent": 2,
+      "modelAliases": [
+        "copilot",
+        "github-copilot",
+        "gpt-4o",
+        "gpt-4",
+        "gpt-3.5"
+      ]
+    }
+  },
+  "defaultAdapter": "claude",
+  "maxOutputChars": 1000000,
+  "logLevel": "info"
+}
