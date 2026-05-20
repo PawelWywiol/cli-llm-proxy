@@ -56,7 +56,9 @@ describe("loadConfig", () => {
     const cfg = loadConfig();
     expect(cfg.server.host).toBe("127.0.0.1");
     expect(cfg.server.port).toBe(11434);
-    expect(cfg.defaultAdapter).toBe("claude");
+    expect(cfg.defaultAdapter).toBe("copilot");
+    expect(cfg.adapters.copilot.enabled).toBe(true);
+    expect(cfg.adapters.copilot.command).toBe("gh");
   });
 
   it("applies PROXY_API_KEY env var", () => {

@@ -44,7 +44,7 @@ Place `config.json` in the working directory (project root).
       ]
     },
     "copilot": {
-      "enabled": false,
+      "enabled": true,
       "command": "gh",
       "extraArgs": ["copilot", "explain"],
       "timeoutMs": 120000,
@@ -55,7 +55,7 @@ Place `config.json` in the working directory (project root).
       ]
     }
   },
-  "defaultAdapter": "claude",   // Fallback when model doesn't match any alias
+  "defaultAdapter": "copilot",  // Fallback when model doesn't match any alias
   "maxOutputChars": 1000000,    // Max stdout/stderr captured per request
   "logLevel": "info"            // Pino log level: trace, debug, info, warn, error, fatal
 }

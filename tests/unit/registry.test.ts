@@ -31,7 +31,7 @@ vi.mock("../../src/config.js", () => ({
         modelAliases: ["gemini", "gemini-pro", "gemini-flash", "gemini-2", "gemini-2.5", "google"],
       },
       copilot: {
-        enabled: false,
+        enabled: true,
         command: "gh",
         extraArgs: ["copilot"],
         timeoutMs: 120_000,
@@ -39,7 +39,7 @@ vi.mock("../../src/config.js", () => ({
         modelAliases: ["copilot", "github-copilot", "gpt-4o", "gpt-4", "gpt-3.5"],
       },
     },
-    defaultAdapter: "claude",
+    defaultAdapter: "copilot",
     maxOutputChars: 1_000_000,
   },
 }));
@@ -80,21 +80,20 @@ describe("AdapterRegistry", () => {
   it("falls back to default adapter for unknown model", () => {
     const adapter = registry.resolve("some-unknown-model");
     expect(adapter).not.toBeNull();
-    expect(adapter!.name).toBe("claude");
+    expect(adapter!.name).toBe("copilot");
   });
 
-  it("getEnabled filters disabled adapters", () => {
+  it("getEnabled includes copilot when enabled", () => {
     const enabled = registry.getEnabled();
     const names = enabled.map((a) => a.name);
     expect(names).toContain("claude");
     expect(names).toContain("gemini");
-    expect(names).not.toContain("copilot");
+    expect(names).toContain("copilot");
   });
 
-  it("getAll returns only registered (enabled) adapters", () => {
+  it("getAll returns all registered adapters", () => {
     const all = registry.getAll();
-    // copilot is disabled so not registered
-    expect(all.length).toBe(2);
+    expect(all.length).toBe(3);
   });
 });
 

@@ -38,7 +38,7 @@
       ]
     },
     "copilot": {
-      "enabled": false,
+      "enabled": true,
       "command": "gh",
       "extraArgs": ["copilot", "explain"],
       "timeoutMs": 120000,
@@ -52,7 +52,7 @@
       ]
     }
   },
-  "defaultAdapter": "claude",
+  "defaultAdapter": "copilot",
   "maxOutputChars": 1000000,
   "logLevel": "info"
 }

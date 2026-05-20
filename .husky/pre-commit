@@ -1,3 +1,16 @@
-pnpm exec lint-staged
-pnpm run build
-pnpm test
+#!/bin/sh
+set -e
+
+if [ -d "$HOME/.local/share/fnm/node-versions/v20.19.6/installation/bin" ]; then
+  PATH="$HOME/.local/share/fnm/node-versions/v20.19.6/installation/bin:$PATH"
+fi
+
+if command -v pnpm >/dev/null 2>&1; then
+  PNPM="pnpm"
+else
+  PNPM="npx --yes pnpm@9.0.0"
+fi
+
+sh -c "$PNPM exec lint-staged"
+sh -c "$PNPM run build"
+sh -c "$PNPM test"

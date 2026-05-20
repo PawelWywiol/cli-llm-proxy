@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "OpenAI-compatible HTTP proxy that routes LLM requests to local CLI tools",
+  "packageManager": "pnpm@9.0.0",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",

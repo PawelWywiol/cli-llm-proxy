@@ -59,7 +59,7 @@ const defaults: Config = {
       modelAliases: ["gemini", "gemini-pro", "gemini-flash", "gemini-2", "gemini-2.5", "google"],
     },
     copilot: {
-      enabled: false,
+      enabled: true,
       command: "gh",
       extraArgs: ["copilot", "explain"],
       timeoutMs: 120_000,
@@ -67,7 +67,7 @@ const defaults: Config = {
       modelAliases: ["copilot", "github-copilot", "gpt-4o", "gpt-4", "gpt-3.5"],
     },
   },
-  defaultAdapter: "claude",
+  defaultAdapter: "copilot",
   maxOutputChars: 1_000_000,
   logLevel: "info",
 };

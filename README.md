@@ -14,9 +14,9 @@ pnpm dev
 
 | CLI | Command | Status |
 |-----|---------|--------|
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `claude --print` | Enabled by default |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `claude --print` | Enabled |
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `gemini -p` | Opt-in |
-| [GitHub Copilot CLI](https://docs.github.com/en/copilot/github-copilot-in-the-cli) | `gh copilot` | Opt-in |
+| [GitHub Copilot CLI](https://docs.github.com/en/copilot/github-copilot-in-the-cli) | `gh copilot` | Enabled by default |
 
 ## Documentation
 
