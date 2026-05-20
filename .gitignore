@@ -1,10 +1,11 @@
-node_modules/
 dist/
-.env
-config.json
-*.tsbuildinfo
-*.log
-.DS_Store
+node_modules/
 coverage/
+*.log
+*.tsbuildinfo
+.env
+.env.*
+config.json
 .vscode/
 .idea/
+.DS_Store

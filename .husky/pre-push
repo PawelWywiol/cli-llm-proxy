@@ -11,7 +11,4 @@ else
   PNPM="npx --yes pnpm@9.0.0"
 fi
 
-sh -c "$PNPM exec lint-staged"
-sh -c "$PNPM typecheck"
-sh -c "$PNPM lint"
-sh -c "$PNPM format:check"
+sh -c "$PNPM test"
