@@ -1,5 +1,6 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
+
 import { config } from "./config.js";
 import { registerRoutes } from "./handlers.js";
 import authPlugin from "./plugins/auth.js";

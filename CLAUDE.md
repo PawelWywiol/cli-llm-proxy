@@ -10,8 +10,10 @@ pnpm build            # tsc → dist/
 pnpm test             # vitest run (all tests)
 pnpm test -- tests/unit/parser.test.ts  # single test file
 pnpm test:watch       # vitest watch mode
-pnpm lint             # biome check
-pnpm lint:fix         # biome check --write (format + lint + imports)
+pnpm lint             # oxlint
+pnpm lint:fix         # oxlint --fix + oxfmt (lint autofix + format)
+pnpm format           # oxfmt (format + import sort)
+pnpm format:check     # oxfmt --check
 pnpm release          # standard-version (patch bump + changelog)
 ```
 
@@ -47,13 +49,14 @@ OpenAI-compatible HTTP proxy that routes `/v1/chat/completions` to local CLI too
 - Unit tests in `tests/unit/`, integration tests in `tests/integration/`
 - Integration tests use Fastify's `app.inject()` — no real HTTP
 - Adapters are mocked in integration tests — no real CLI execution
-- Pre-commit hook runs: lint-staged → build (type check) → test
+- Git hooks via lefthook (`lefthook.yml`): pre-commit = oxfmt + oxlint on staged files + typecheck; commit-msg = commitlint; pre-push = test + audit:deps
+- `audit:deps` = audit-ci (fails on moderate+ vulnerabilities), runs pre-push and in CI
 
 ## Code Style
 
-- Biome: 120 char line width, double quotes, trailing commas, 2-space indent
-- `noNonNullAssertion` enforced in src (use `?? fallback` or narrowing), relaxed in tests
-- ANSI regex in parser.ts has a `biome-ignore` for intentional control chars
+- oxfmt (`.oxfmtrc.json`): 120 char print width, double quotes, trailing commas "all", 2-space indent, import sorting
+- oxlint (`.oxlintrc.json`): correctness category + `no-unused-vars`/`no-debugger`; `typescript/no-explicit-any` and `no-non-null-assertion` relaxed in `*.test.ts`/`*.spec.ts`
+- ANSI regex in parser.ts has an `// oxlint-disable-next-line no-control-regex` for intentional control chars
 
 ## Git Rules
 

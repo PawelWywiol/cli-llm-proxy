@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
+
 import { config } from "../config.js";
 import type { OpenAIError } from "../types/openai.js";
 

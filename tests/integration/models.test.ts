@@ -63,6 +63,7 @@ vi.mock("../../src/adapters/copilot.js", () => ({
 }));
 
 import Fastify from "fastify";
+
 import { registerRoutes } from "../../src/handlers.js";
 import authPlugin from "../../src/plugins/auth.js";
 import loggerPlugin from "../../src/plugins/logger.js";

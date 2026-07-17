@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+
 import { deepMerge, loadConfig } from "../../src/config.js";
 
 describe("deepMerge", () => {

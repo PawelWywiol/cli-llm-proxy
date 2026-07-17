@@ -1,6 +1,6 @@
 import type { ChatMessage } from "../types/openai.js";
 
-// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional ESC char for ANSI stripping
+// oxlint-disable-next-line no-control-regex -- intentional ESC char for ANSI stripping
 const ANSI_REGEX = /\x1B\[[0-9;]*[a-zA-Z]/g;
 const SPINNER_CHARS = /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏⣾⣽⣻⢿⡿⣟⣯⣷◐◓◑◒⏳⌛|\\/-]+/g;
 const NOISE_PATTERNS = [/^(Loading|Initializing|Thinking)\.{0,3}$/gm, /^>\s*$/gm];

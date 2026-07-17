@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
 import { StreamEmitter } from "../../src/utils/process.js";
 
 vi.mock("../../src/config.js", () => ({
@@ -68,6 +69,7 @@ vi.mock("../../src/adapters/copilot.js", () => ({
 }));
 
 import Fastify from "fastify";
+
 import { registerRoutes } from "../../src/handlers.js";
 import authPlugin from "../../src/plugins/auth.js";
 import loggerPlugin from "../../src/plugins/logger.js";

@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+
 import { createRequestContext } from "./context.js";
 import { registry } from "./registry.js";
 import type {

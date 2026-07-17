@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { CliErrorType, detectCliError } from "../../src/utils/errors.js";
 
 describe("detectCliError", () => {

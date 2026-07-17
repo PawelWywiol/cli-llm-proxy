@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { Semaphore } from "../../src/utils/semaphore.js";
 
 describe("Semaphore", () => {

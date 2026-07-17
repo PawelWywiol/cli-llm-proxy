@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { detectCopilotMode } from "../../src/adapters/copilot.js";
 import { resolveGeminiModel } from "../../src/adapters/gemini.js";
 

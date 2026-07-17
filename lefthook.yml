@@ -1,0 +1,23 @@
+pre-commit:
+  commands:
+    format:
+      glob: "*.ts"
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true
+    lint:
+      glob: "*.ts"
+      run: pnpm exec oxlint {staged_files}
+    typecheck:
+      run: pnpm typecheck
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  commands:
+    test:
+      run: pnpm test
+    audit:
+      run: pnpm audit:deps
