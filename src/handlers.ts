@@ -2,12 +2,13 @@ import { randomUUID } from "node:crypto";
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
-import { createRequestContext } from "./context.js";
+import { config } from "./config.js";
 import { registry } from "./registry.js";
 import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatCompletionStreamChunk,
+  ChatMessage,
   Model,
   ModelsResponse,
   OpenAIError,
@@ -28,6 +29,58 @@ function errorResponse(
   return reply.status(status).send(body);
 }
 
+interface RunOptions {
+  messages: ChatMessage[];
+  model: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+type AdapterOutcome =
+  | { ok: true; content: string; adapterName: string }
+  | { ok: false; status: number; message: string; type: string; code: string | null };
+
+async function runAdapterNonStreaming(opts: RunOptions): Promise<AdapterOutcome> {
+  const adapter = registry.resolve(opts.model);
+  if (!adapter) {
+    return {
+      ok: false,
+      status: 400,
+      message: `No adapter found for model: ${opts.model}`,
+      type: "invalid_request_error",
+      code: null,
+    };
+  }
+
+  const result = await adapter.run(opts);
+
+  if (result.timedOut) {
+    return { ok: false, status: 504, message: "CLI adapter timed out", type: "server_error", code: "timeout" };
+  }
+
+  const cliError = detectCliError(result.rawStdout, result.rawStderr);
+  if (result.exitCode !== 0 && !result.content) {
+    if (cliError) {
+      return {
+        ok: false,
+        status: cliError.httpStatus,
+        message: cliError.message,
+        type: "server_error",
+        code: cliError.type,
+      };
+    }
+    return {
+      ok: false,
+      status: 502,
+      message: `CLI exited with code ${result.exitCode}: ${result.rawStderr}`,
+      type: "server_error",
+      code: null,
+    };
+  }
+
+  return { ok: true, content: result.content, adapterName: adapter.name };
+}
+
 async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionRequest }>, reply: FastifyReply) {
   const body = request.body;
 
@@ -38,17 +91,7 @@ async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionReq
     return errorResponse(reply, 400, "model is required and must be a string");
   }
 
-  const ctx = createRequestContext(body.model);
-  const adapter = registry.resolve(body.model);
-
-  if (!adapter) {
-    return errorResponse(reply, 400, `No adapter found for model: ${body.model}`);
-  }
-
-  ctx.adapterName = adapter.name;
-  (request as unknown as Record<string, unknown>).adapterName = adapter.name;
-
-  const opts = {
+  const opts: RunOptions = {
     messages: body.messages,
     model: body.model,
     temperature: body.temperature,
@@ -57,6 +100,12 @@ async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionReq
 
   // Streaming path
   if (body.stream === true) {
+    const adapter = registry.resolve(body.model);
+    if (!adapter) {
+      return errorResponse(reply, 400, `No adapter found for model: ${body.model}`);
+    }
+    (request as unknown as Record<string, unknown>).adapterName = adapter.name;
+
     const raw = reply.raw;
     raw.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -128,23 +177,15 @@ async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionReq
   }
 
   // Non-streaming path
-  const result = await adapter.run(opts);
-
-  if (result.timedOut) {
-    return errorResponse(reply, 504, "CLI adapter timed out", "server_error", "timeout");
+  const outcome = await runAdapterNonStreaming(opts);
+  if (!outcome.ok) {
+    return errorResponse(reply, outcome.status, outcome.message, outcome.type, outcome.code);
   }
-
-  const cliError = detectCliError(result.rawStdout, result.rawStderr);
-  if (result.exitCode !== 0 && !result.content) {
-    if (cliError) {
-      return errorResponse(reply, cliError.httpStatus, cliError.message, "server_error", cliError.type);
-    }
-    return errorResponse(reply, 502, `CLI exited with code ${result.exitCode}: ${result.rawStderr}`, "server_error");
-  }
+  (request as unknown as Record<string, unknown>).adapterName = outcome.adapterName;
 
   const promptText = body.messages.map((m) => m.content).join(" ");
   const promptTokens = estimateTokens(promptText);
-  const completionTokens = estimateTokens(result.content);
+  const completionTokens = estimateTokens(outcome.content);
 
   const response: ChatCompletionResponse = {
     id: `chatcmpl-${randomUUID()}`,
@@ -154,7 +195,7 @@ async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionReq
     choices: [
       {
         index: 0,
-        message: { role: "assistant", content: result.content },
+        message: { role: "assistant", content: outcome.content },
         finish_reason: "stop",
         logprobs: null,
       },
@@ -164,10 +205,36 @@ async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionReq
       completion_tokens: completionTokens,
       total_tokens: promptTokens + completionTokens,
     },
-    system_fingerprint: `fp_${adapter.name}`,
+    system_fingerprint: `fp_${outcome.adapterName}`,
   };
 
   return reply.send(response);
+}
+
+// teams-captions-ext compat: POST /v1/generate
+// Accepts { provider, messages, metadata }, maps provider -> model alias,
+// returns { output: { text } } / { error: { message } } (non-streaming only).
+async function generate(
+  request: FastifyRequest<{
+    Body: { provider?: string; messages?: ChatMessage[]; metadata?: Record<string, unknown> };
+  }>,
+  reply: FastifyReply,
+) {
+  const body = request.body;
+
+  if (!body?.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
+    return reply.status(400).send({ error: { message: "messages is required and must be a non-empty array" } });
+  }
+
+  const model = body.provider || config.defaultAdapter;
+  const outcome = await runAdapterNonStreaming({ messages: body.messages, model });
+
+  if (!outcome.ok) {
+    return reply.status(outcome.status).send({ error: { message: outcome.message } });
+  }
+
+  (request as unknown as Record<string, unknown>).adapterName = outcome.adapterName;
+  return reply.send({ output: { text: outcome.content } });
 }
 
 async function listModels(_request: FastifyRequest, reply: FastifyReply) {
@@ -253,6 +320,7 @@ async function ollamaChat(
 
 export function registerRoutes(app: FastifyInstance) {
   app.post("/v1/chat/completions", chatCompletions);
+  app.post("/v1/generate", generate);
   app.get("/v1/models", listModels);
   app.get("/health", healthCheck);
   app.get("/api/tags", ollamaTags);
