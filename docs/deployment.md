@@ -43,25 +43,52 @@ sudo systemctl enable --now cli-llm-proxy
 sudo journalctl -u cli-llm-proxy -f   # View logs
 ```
 
-## Docker
+## Docker Compose (recommended)
+
+Designed for a server where the CLI tools are **already installed and authenticated** for a user (e.g. `claude`). The image contains only the Node proxy; the host CLI binary and its auth are mounted in, so there is nothing extra to install or log into.
 
 ```bash
-# Build
-pnpm build
-docker build -t cli-llm-proxy .
+docker compose up -d --build
+```
 
-# Run
-docker run -d \
-  --name cli-llm-proxy \
-  -p 11434:11434 \
-  -e PROXY_API_KEY=your-secret-key \
+That's it. `compose.yml` (defaults for host user `code`, uid 1000) mounts:
+- the host CLI binary dir + its versioned payload (`~/.local/bin`, `~/.local/share/claude`) at identical paths so the CLI's absolute symlinks resolve inside the container — host CLI updates flow through with no rebuild;
+- the auth/state (`~/.claude`, `~/.claude.json`) read-write.
+
+The image builds `dist/` itself (multi-stage), so the host needs **no Node.js** — only Docker + Compose.
+
+Override via a `.env` file (see `.env.example`) when the host differs:
+
+```bash
+HOST_HOME=/home/alice   # host user's home (CLI + auth live here)
+HOST_UID=1000           # must own the mounted files
+HOST_GID=1000
+PROXY_API_KEY=your-secret-key
+DEFAULT_ADAPTER=claude
+CLAUDE_ENABLED=true
+GEMINI_ENABLED=false    # enable + add its mount when installed on the host
+COPILOT_ENABLED=false
+```
+
+The container forces `HOST=0.0.0.0` so the port is reachable; the proxy still defaults to `127.0.0.1` when run outside a container.
+
+**Adding another host CLI** (e.g. gemini): set `GEMINI_ENABLED=true`, add its binary + auth mounts to `compose.yml`, and set `GEMINI_CLI_PATH` to the mounted absolute path.
+
+### Manual Docker (without Compose)
+
+```bash
+docker build -t cli-llm-proxy .
+docker run -d --name cli-llm-proxy -p 11434:11434 \
+  --user 1000:1000 -e HOST=0.0.0.0 -e HOME=/home/code \
+  -e PROXY_API_KEY=your-secret-key -e CLAUDE_CLI_PATH=/home/code/.local/bin/claude \
+  -v /home/code/.local/bin:/home/code/.local/bin:ro \
+  -v /home/code/.local/share/claude:/home/code/.local/share/claude:ro \
+  -v /home/code/.claude:/home/code/.claude \
+  -v /home/code/.claude.json:/home/code/.claude.json \
   cli-llm-proxy
 ```
 
-**Important**: The Docker image does NOT include CLI tools (claude, gemini, gh). You must either:
-- Mount CLI binaries from the host: `-v /usr/local/bin/claude:/usr/local/bin/claude`
-- Install them in a custom Dockerfile
-- Use Docker for API-only adapters
+> The claude native binary links only against standard glibc, so a glibc base image (`node:20-slim`) runs the host binary as-is. Alpine (musl) would not.
 
 ## Integration Examples
 

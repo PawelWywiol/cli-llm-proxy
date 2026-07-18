@@ -71,13 +71,20 @@ Place `config.json` in the working directory (project root).
 | Variable | Overrides | Default | Description |
 |----------|-----------|---------|-------------|
 | `PROXY_API_KEY` | `server.apiKey` | `""` (disabled) | API key for authentication |
+| `HOST` | `server.host` | `127.0.0.1` | Bind address (compose forces `0.0.0.0` in-container) |
 | `PORT` | `server.port` | `11434` | HTTP listen port |
+| `DEFAULT_ADAPTER` | `defaultAdapter` | `copilot` | Fallback adapter for unmatched model names |
+| `CLAUDE_ENABLED` | `adapters.claude.enabled` | `true` | Set to `false`/`0` to disable the adapter |
+| `GEMINI_ENABLED` | `adapters.gemini.enabled` | `false` | Set to `false`/`0` to disable the adapter |
+| `COPILOT_ENABLED` | `adapters.copilot.enabled` | `true` | Set to `false`/`0` to disable the adapter |
 | `CLAUDE_CLI_PATH` | `adapters.claude.command` | `claude` | Path to Claude CLI binary |
 | `GEMINI_CLI_PATH` | `adapters.gemini.command` | `gemini` | Path to Gemini CLI binary |
 | `COPILOT_CLI_PATH` | `adapters.copilot.command` | `gh` | Path to GitHub CLI binary |
 | `LOG_LEVEL` | `logLevel` | `info` | Pino log level |
 | `DOCS_ENABLED` | `docs.enabled` | `true` | Set to `false`/`0` to disable Swagger docs |
 | `NODE_ENV` | - | - | Set to `production` to disable pino-pretty |
+
+Compose-only variables (`compose.yml`, not read by the app): `HOST_HOME`, `HOST_UID`, `HOST_GID` — the host user's home and ids used to mount host-installed CLIs + auth. See [deployment](deployment.md#docker-compose-recommended).
 
 ## Request timeout override
 

@@ -4,13 +4,21 @@ OpenAI-compatible HTTP proxy that routes LLM requests to local CLI tools.
 
 ## Quick Start
 
+Local (needs Node + the CLI tools on PATH):
+
 ```bash
 pnpm install
 cp config.example.json config.json   # Edit as needed
 pnpm dev
 ```
 
-Interactive API docs (Swagger) are served at `http://localhost:11434/docs`.
+Docker (CLIs already installed on the host — no Node needed):
+
+```bash
+docker compose up -d --build
+```
+
+Compose mounts the host-installed CLI binary + its auth into the container; see [Deployment](docs/deployment.md#docker-compose-recommended). Interactive API docs (Swagger) are served at `http://localhost:11434/docs`.
 
 ## Supported CLIs
 

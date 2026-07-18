@@ -4,16 +4,26 @@ services:
     build: .
     ports:
       - "${PORT:-11434}:11434"
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       - NODE_ENV=production
+      - HOST=0.0.0.0
+      - HOME=${HOST_HOME:-/home/code}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - PROXY_API_KEY=${PROXY_API_KEY:-}
+      - DEFAULT_ADAPTER=${DEFAULT_ADAPTER:-claude}
+      - CLAUDE_ENABLED=${CLAUDE_ENABLED:-true}
+      - GEMINI_ENABLED=${GEMINI_ENABLED:-false}
+      - COPILOT_ENABLED=${COPILOT_ENABLED:-false}
+      - CLAUDE_CLI_PATH=${HOST_HOME:-/home/code}/.local/bin/claude
     volumes:
-      - ./config.json:/app/config.json:ro
-      # Mount host CLI binaries (adjust paths as needed)
-      # - /usr/local/bin/claude:/usr/local/bin/claude:ro
-      # - /usr/local/bin/gemini:/usr/local/bin/gemini:ro
-      # - /usr/local/bin/gh:/usr/local/bin/gh:ro
+      # Host-installed CLI binary + auth, mounted at identical paths so the
+      # CLI's absolute symlinks resolve inside the container. Host updates flow
+      # through automatically (directories mounted, not pinned version files).
+      - ${HOST_HOME:-/home/code}/.local/bin:${HOST_HOME:-/home/code}/.local/bin:ro
+      - ${HOST_HOME:-/home/code}/.local/share/claude:${HOST_HOME:-/home/code}/.local/share/claude:ro
+      - ${HOST_HOME:-/home/code}/.claude:${HOST_HOME:-/home/code}/.claude
+      - ${HOST_HOME:-/home/code}/.claude.json:${HOST_HOME:-/home/code}/.claude.json
     restart: unless-stopped
     healthcheck:
       test:

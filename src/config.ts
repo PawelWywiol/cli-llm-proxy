@@ -125,8 +125,20 @@ export function loadConfig(): Config {
   if (process.env.PROXY_API_KEY) {
     merged.server.apiKey = process.env.PROXY_API_KEY;
   }
+  if (process.env.HOST) {
+    merged.server.host = process.env.HOST;
+  }
   if (process.env.PORT) {
     merged.server.port = parseInt(process.env.PORT, 10);
+  }
+  if (process.env.DEFAULT_ADAPTER) {
+    merged.defaultAdapter = process.env.DEFAULT_ADAPTER;
+  }
+  for (const name of ["claude", "gemini", "copilot"] as const) {
+    const flag = process.env[`${name.toUpperCase()}_ENABLED`];
+    if (flag !== undefined) {
+      merged.adapters[name].enabled = flag !== "false" && flag !== "0";
+    }
   }
   if (process.env.CLAUDE_CLI_PATH) {
     merged.adapters.claude.command = process.env.CLAUDE_CLI_PATH;
