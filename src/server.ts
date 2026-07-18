@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import { config } from "./config.js";
 import { registerRoutes } from "./handlers.js";
 import authPlugin from "./plugins/auth.js";
+import { registerDocs } from "./plugins/docs.js";
 import loggerPlugin from "./plugins/logger.js";
 
 export async function buildApp() {
@@ -17,6 +18,7 @@ export async function buildApp() {
   await app.register(cors);
   await app.register(authPlugin);
   await app.register(loggerPlugin);
+  await registerDocs(app);
   registerRoutes(app);
 
   return app;

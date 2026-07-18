@@ -29,6 +29,8 @@ OpenAI-compatible chat completions endpoint.
 
 Roles: `system`, `user`, `assistant`, `tool`
 
+**Header `X-Request-Timeout-Ms`** (optional): overrides the adapter timeout for this request, clamped to `maxRequestTimeoutMs` (default 600000). Useful for very large prompts. Also honored by `/v1/generate` and `/v1/jobs`.
+
 ### Non-Streaming Response
 
 ```json
@@ -67,6 +69,68 @@ data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","created":1711700000
 
 data: [DONE]
 ```
+
+## POST /v1/generate
+
+Compatibility endpoint for the `teams-captions-ext` client. Non-streaming only.
+
+### Request
+
+```json
+{
+  "provider": "claude",
+  "messages": [
+    { "role": "user", "content": "Summarize this transcript..." }
+  ],
+  "metadata": {}
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `provider` | string | No | Maps to a model alias; falls back to `defaultAdapter` when omitted |
+| `messages` | array | Yes | Non-empty array of `{role, content}` objects |
+| `metadata` | object | No | Passed through, currently ignored |
+
+### Response
+
+```json
+{ "output": { "text": "..." } }
+```
+
+On error, returns the matching HTTP status with `{ "error": { "message": "..." } }`.
+
+> New integrations should prefer `POST /v1/chat/completions` (standard OpenAI shape) so the
+> backend can be swapped for OpenAI/OpenRouter without client changes. See `.claude/docs/api-standards.md`.
+
+## Async Jobs
+
+For long-running requests, submit a job and poll for the result instead of holding one HTTP connection open.
+
+### POST /v1/jobs
+
+Accepts the same body as `/v1/chat/completions` (non-streaming). Returns `202` immediately.
+
+```json
+{
+  "id": "<uuid>",
+  "status": "queued",
+  "model": "claude",
+  "createdAt": 1711700000000,
+  "updatedAt": 1711700000000
+}
+```
+
+`status`: `queued` → `running` → `succeeded` | `failed` | `canceled`.
+
+### GET /v1/jobs/{id}
+
+Returns the current job record. When `status` is `succeeded`, `result` holds the OpenAI
+`chat.completion` object; when `failed`, `error` holds `{ message, code }`. `404` if the id is unknown or expired (jobs are kept ~1h).
+
+### DELETE /v1/jobs/{id}
+
+Cancels a `queued` or `running` job (returns the updated record). `404` if unknown.
 
 ## GET /v1/models
 
@@ -153,9 +217,14 @@ Accepts Ollama-format chat requests, translates internally to OpenAI format, and
 
 Response format follows the OpenAI `/v1/chat/completions` shape (not Ollama native format).
 
+## Interactive Docs (Swagger)
+
+When `docs.enabled` is `true` (default), an interactive OpenAPI UI is served at `/docs` and the raw
+spec at `/docs/json`. Disable with `docs.enabled: false` or `DOCS_ENABLED=false`.
+
 ## Authentication
 
-All endpoints except `/health` require auth when `server.apiKey` is set.
+All endpoints except `/health` and the docs route require auth when `server.apiKey` is set.
 
 ```
 Authorization: Bearer <your-api-key>

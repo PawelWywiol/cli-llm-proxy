@@ -29,12 +29,13 @@ export class GeminiAdapter extends BaseAdapter {
 
   protected async executeRun(opts: AdapterRunOptions): Promise<AdapterResult> {
     const prompt = buildFullPrompt(opts.messages as ChatMessage[]);
-    const args = this.buildArgs(opts.model, prompt);
+    const args = this.buildArgs(opts.model);
 
     const result = await runCli({
       command: this.cfg.command,
       args,
-      timeoutMs: this.cfg.timeoutMs,
+      stdin: prompt,
+      timeoutMs: opts.timeoutMs ?? this.cfg.timeoutMs,
       maxOutputChars: config.maxOutputChars,
     });
 
@@ -52,22 +53,22 @@ export class GeminiAdapter extends BaseAdapter {
 
   stream(opts: AdapterRunOptions): StreamEmitter {
     const prompt = buildFullPrompt(opts.messages as ChatMessage[]);
-    const args = this.buildArgs(opts.model, prompt);
+    const args = this.buildArgs(opts.model);
 
     return streamCli({
       command: this.cfg.command,
       args,
-      timeoutMs: this.cfg.timeoutMs,
+      stdin: prompt,
+      timeoutMs: opts.timeoutMs ?? this.cfg.timeoutMs,
     });
   }
 
-  private buildArgs(model: string, prompt: string): string[] {
+  private buildArgs(model: string): string[] {
     const args = [...this.cfg.extraArgs];
     const resolved = resolveGeminiModel(model);
     if (resolved) {
       args.push("--model", resolved);
     }
-    args.push("-p", prompt);
     return args;
   }
 

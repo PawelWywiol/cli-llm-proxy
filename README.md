@@ -10,6 +10,8 @@ cp config.example.json config.json   # Edit as needed
 pnpm dev
 ```
 
+Interactive API docs (Swagger) are served at `http://localhost:11434/docs`.
+
 ## Supported CLIs
 
 | CLI | Command | Status |

@@ -57,6 +57,11 @@ Place `config.json` in the working directory (project root).
   },
   "defaultAdapter": "copilot",  // Fallback when model doesn't match any alias
   "maxOutputChars": 1000000,    // Max stdout/stderr captured per request
+  "maxRequestTimeoutMs": 600000,// Ceiling for the per-request X-Request-Timeout-Ms header
+  "docs": {
+    "enabled": true,            // Serve Swagger UI + OpenAPI spec
+    "routePrefix": "/docs"      // UI at /docs, spec at /docs/json
+  },
   "logLevel": "info"            // Pino log level: trace, debug, info, warn, error, fatal
 }
 ```
@@ -71,7 +76,16 @@ Place `config.json` in the working directory (project root).
 | `GEMINI_CLI_PATH` | `adapters.gemini.command` | `gemini` | Path to Gemini CLI binary |
 | `COPILOT_CLI_PATH` | `adapters.copilot.command` | `gh` | Path to GitHub CLI binary |
 | `LOG_LEVEL` | `logLevel` | `info` | Pino log level |
+| `DOCS_ENABLED` | `docs.enabled` | `true` | Set to `false`/`0` to disable Swagger docs |
 | `NODE_ENV` | - | - | Set to `production` to disable pino-pretty |
+
+## Request timeout override
+
+Clients may send an `X-Request-Timeout-Ms` header on `/v1/chat/completions`, `/v1/generate`, and `/v1/jobs` to raise or lower the CLI timeout for a single request (useful for very large prompts). The value is clamped to `maxRequestTimeoutMs`; the per-adapter `timeoutMs` is used when the header is absent.
+
+## API docs (Swagger)
+
+When `docs.enabled` is `true` (default), interactive OpenAPI docs are served at `docs.routePrefix` (default `/docs`), with the raw spec at `/docs/json`. The docs route bypasses auth, like `/health`.
 
 ## Per-Adapter Config Details
 

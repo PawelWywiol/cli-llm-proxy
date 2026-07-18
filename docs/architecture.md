@@ -21,6 +21,8 @@ Client (OpenAI SDK, curl, Open WebUI, etc.)
 +-----------------------+
 | Route Handlers        |  src/handlers.ts
 |  - /v1/chat/completions
+|  - /v1/generate (ext compat)
+|  - /v1/jobs (async queue)
 |  - /v1/models
 |  - /health
 |  - /api/tags (Ollama)
@@ -81,10 +83,13 @@ OpenAI-format JSON response (or SSE stream)
 |------|---------|
 | `src/server.ts` | Fastify app bootstrap, plugin registration, graceful shutdown |
 | `src/config.ts` | Config loading: defaults -> config.json -> env vars. Exports singleton `config` |
-| `src/handlers.ts` | Route handlers for OpenAI and Ollama endpoints |
+| `src/handlers.ts` | Route handlers for OpenAI, Ollama, and async-job endpoints |
+| `src/chat-service.ts` | Shared adapter execution + OpenAI response builder (reused by sync routes and jobs) |
+| `src/jobs.ts` | JobManager: async queue on StorageProvider (enqueue → run → poll/cancel) |
 | `src/registry.ts` | AdapterRegistry: model-to-adapter resolution (exact, contains, default fallback) |
 | `src/context.ts` | RequestContext factory with requestId, timing, extensible key-value |
 | `src/storage.ts` | StorageProvider interface + InMemoryStorage (for future persistence) |
+| `src/plugins/docs.ts` | Swagger/OpenAPI docs at `/docs` (config-gated) |
 | `src/types/openai.ts` | TypeScript types for OpenAI API request/response shapes |
 | `src/adapters/base.ts` | BaseAdapter abstract class with semaphore-based concurrency |
 | `src/adapters/claude.ts` | ClaudeAdapter: uses `claude --print <prompt>` |

@@ -8,6 +8,7 @@ async function authPlugin(app: FastifyInstance) {
   app.addHook("preHandler", async (request: FastifyRequest, reply: FastifyReply) => {
     if (!config.server.apiKey) return;
     if (request.url === "/health") return;
+    if (config.docs.enabled && request.url.startsWith(config.docs.routePrefix)) return;
 
     const authHeader = request.headers.authorization;
     const apiKeyHeader = request.headers["x-api-key"];

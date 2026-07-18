@@ -7,11 +7,11 @@ All CLI processes are spawned with `shell: false` (src/utils/process.ts). This i
 - **With `shell: true`**: User-controlled prompt text would be interpreted by the shell, enabling injection (e.g., `; rm -rf /`)
 - **With `shell: false`**: Arguments are passed directly to `execve`, no shell interpretation occurs
 
-The proxy passes the full prompt as a single argument to the CLI. Without shell interpretation, special characters are harmless.
+The Claude and Gemini adapters pass the prompt over **stdin** (not argv), which avoids OS argument-length limits on large prompts and keeps prompt text out of the process argument list (e.g. `ps`). The Copilot adapter passes the prompt as a single argument. In all cases, `shell: false` means special characters are never interpreted by a shell.
 
 ## Authentication
 
-When `server.apiKey` is configured (via config.json or `PROXY_API_KEY` env var), all endpoints except `/health` require authentication.
+When `server.apiKey` is configured (via config.json or `PROXY_API_KEY` env var), all endpoints except `/health` and the docs route (`/docs`) require authentication.
 
 Supported methods:
 - `Authorization: Bearer <key>` header

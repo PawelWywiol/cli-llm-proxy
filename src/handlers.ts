@@ -2,19 +2,18 @@ import { randomUUID } from "node:crypto";
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
+import { buildChatResponse, type ChatRunOptions, runAdapterNonStreaming } from "./chat-service.js";
 import { config } from "./config.js";
+import { jobManager } from "./jobs.js";
 import { registry } from "./registry.js";
 import type {
   ChatCompletionRequest,
-  ChatCompletionResponse,
   ChatCompletionStreamChunk,
   ChatMessage,
   Model,
   ModelsResponse,
   OpenAIError,
 } from "./types/openai.js";
-import { detectCliError } from "./utils/errors.js";
-import { estimateTokens } from "./utils/parser.js";
 
 function errorResponse(
   reply: FastifyReply,
@@ -29,56 +28,13 @@ function errorResponse(
   return reply.status(status).send(body);
 }
 
-interface RunOptions {
-  messages: ChatMessage[];
-  model: string;
-  temperature?: number;
-  maxTokens?: number;
-}
-
-type AdapterOutcome =
-  | { ok: true; content: string; adapterName: string }
-  | { ok: false; status: number; message: string; type: string; code: string | null };
-
-async function runAdapterNonStreaming(opts: RunOptions): Promise<AdapterOutcome> {
-  const adapter = registry.resolve(opts.model);
-  if (!adapter) {
-    return {
-      ok: false,
-      status: 400,
-      message: `No adapter found for model: ${opts.model}`,
-      type: "invalid_request_error",
-      code: null,
-    };
-  }
-
-  const result = await adapter.run(opts);
-
-  if (result.timedOut) {
-    return { ok: false, status: 504, message: "CLI adapter timed out", type: "server_error", code: "timeout" };
-  }
-
-  const cliError = detectCliError(result.rawStdout, result.rawStderr);
-  if (result.exitCode !== 0 && !result.content) {
-    if (cliError) {
-      return {
-        ok: false,
-        status: cliError.httpStatus,
-        message: cliError.message,
-        type: "server_error",
-        code: cliError.type,
-      };
-    }
-    return {
-      ok: false,
-      status: 502,
-      message: `CLI exited with code ${result.exitCode}: ${result.rawStderr}`,
-      type: "server_error",
-      code: null,
-    };
-  }
-
-  return { ok: true, content: result.content, adapterName: adapter.name };
+function resolveTimeoutMs(request: FastifyRequest): number | undefined {
+  const header = request.headers["x-request-timeout-ms"];
+  const raw = Array.isArray(header) ? header[0] : header;
+  if (!raw) return undefined;
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isFinite(value) || value <= 0) return undefined;
+  return Math.min(value, config.maxRequestTimeoutMs);
 }
 
 async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionRequest }>, reply: FastifyReply) {
@@ -91,11 +47,12 @@ async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionReq
     return errorResponse(reply, 400, "model is required and must be a string");
   }
 
-  const opts: RunOptions = {
+  const opts: ChatRunOptions = {
     messages: body.messages,
     model: body.model,
     temperature: body.temperature,
     maxTokens: body.max_tokens as number | undefined,
+    timeoutMs: resolveTimeoutMs(request),
   };
 
   // Streaming path
@@ -183,32 +140,7 @@ async function chatCompletions(request: FastifyRequest<{ Body: ChatCompletionReq
   }
   (request as unknown as Record<string, unknown>).adapterName = outcome.adapterName;
 
-  const promptText = body.messages.map((m) => m.content).join(" ");
-  const promptTokens = estimateTokens(promptText);
-  const completionTokens = estimateTokens(outcome.content);
-
-  const response: ChatCompletionResponse = {
-    id: `chatcmpl-${randomUUID()}`,
-    object: "chat.completion",
-    created: Math.floor(Date.now() / 1000),
-    model: body.model,
-    choices: [
-      {
-        index: 0,
-        message: { role: "assistant", content: outcome.content },
-        finish_reason: "stop",
-        logprobs: null,
-      },
-    ],
-    usage: {
-      prompt_tokens: promptTokens,
-      completion_tokens: completionTokens,
-      total_tokens: promptTokens + completionTokens,
-    },
-    system_fingerprint: `fp_${outcome.adapterName}`,
-  };
-
-  return reply.send(response);
+  return reply.send(buildChatResponse(body.model, body.messages, outcome.content, outcome.adapterName));
 }
 
 // teams-captions-ext compat: POST /v1/generate
@@ -227,7 +159,11 @@ async function generate(
   }
 
   const model = body.provider || config.defaultAdapter;
-  const outcome = await runAdapterNonStreaming({ messages: body.messages, model });
+  const outcome = await runAdapterNonStreaming({
+    messages: body.messages,
+    model,
+    timeoutMs: resolveTimeoutMs(request),
+  });
 
   if (!outcome.ok) {
     return reply.status(outcome.status).send({ error: { message: outcome.message } });
@@ -235,6 +171,37 @@ async function generate(
 
   (request as unknown as Record<string, unknown>).adapterName = outcome.adapterName;
   return reply.send({ output: { text: outcome.content } });
+}
+
+// Async job queue: submit -> 202, then poll status / fetch result.
+async function createJob(request: FastifyRequest<{ Body: ChatCompletionRequest }>, reply: FastifyReply) {
+  const body = request.body;
+
+  if (!body?.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
+    return errorResponse(reply, 400, "messages is required and must be a non-empty array");
+  }
+  if (!body.model || typeof body.model !== "string") {
+    return errorResponse(reply, 400, "model is required and must be a string");
+  }
+
+  const job = await jobManager.enqueue(body);
+  return reply.status(202).send(job);
+}
+
+async function getJob(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  const job = await jobManager.get(request.params.id);
+  if (!job) {
+    return errorResponse(reply, 404, `No job found: ${request.params.id}`, "invalid_request_error", "job_not_found");
+  }
+  return reply.send(job);
+}
+
+async function cancelJob(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  const job = await jobManager.cancel(request.params.id);
+  if (!job) {
+    return errorResponse(reply, 404, `No job found: ${request.params.id}`, "invalid_request_error", "job_not_found");
+  }
+  return reply.send(job);
 }
 
 async function listModels(_request: FastifyRequest, reply: FastifyReply) {
@@ -321,6 +288,9 @@ async function ollamaChat(
 export function registerRoutes(app: FastifyInstance) {
   app.post("/v1/chat/completions", chatCompletions);
   app.post("/v1/generate", generate);
+  app.post("/v1/jobs", createJob);
+  app.get("/v1/jobs/:id", getJob);
+  app.delete("/v1/jobs/:id", cancelJob);
   app.get("/v1/models", listModels);
   app.get("/health", healthCheck);
   app.get("/api/tags", ollamaTags);

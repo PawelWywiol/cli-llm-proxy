@@ -24,17 +24,18 @@ abstract class BaseAdapter {
 
 ## Built-in Adapters
 
-### Claude (default)
+### Claude
 
-- **CLI**: `claude --print <prompt>`
+- **CLI**: `claude --print` (prompt piped via stdin, so large prompts aren't bounded by argv limits)
 - **Config key**: `adapters.claude`
 - **Default aliases**: claude, claude-code, claude-sonnet, claude-opus, claude-haiku, claude-3, claude-3-5, claude-3-7
 - **Prompt building**: System messages prepended, then `Human:`/`Assistant:` turn format via `buildFullPrompt()`
 - **Health check**: `claude --version`
+- **Enabled by default**: Yes
 
 ### Gemini
 
-- **CLI**: `gemini -p <prompt>` with optional `--model <resolved>`
+- **CLI**: `gemini` with optional `--model <resolved>` (prompt piped via stdin)
 - **Config key**: `adapters.gemini`
 - **Default aliases**: gemini, gemini-pro, gemini-flash, gemini-2, gemini-2.5, google
 - **Model mapping** (`resolveGeminiModel()`):
@@ -44,15 +45,15 @@ abstract class BaseAdapter {
   - Contains "gemini-2" -> `gemini-2.0-flash`
 - **Enabled by default**: No (set `adapters.gemini.enabled: true`)
 
-### Copilot
+### Copilot (default)
 
-- **CLI**: `gh copilot explain|suggest <prompt>`
+- **CLI**: `gh copilot explain <prompt>` or `gh copilot suggest -t shell <prompt>`
 - **Config key**: `adapters.copilot`
 - **Default aliases**: copilot, github-copilot, gpt-4o, gpt-4, gpt-3.5
-- **Mode detection** (`detectCopilotMode()`): If prompt contains "explain", "what does", "how does", etc. -> `explain` mode, otherwise `suggest` mode
+- **Mode detection** (`detectCopilotMode()`): If prompt contains "explain", "what does", "how does", etc. -> `explain` mode, otherwise `suggest` mode (adds `-t shell`)
 - **Extra env**: `CI=1` (suppresses interactive prompts)
 - **Health check**: `gh copilot --version`, falls back to checking `gh extension list` for copilot
-- **Enabled by default**: No
+- **Enabled by default**: Yes (the proxy's `defaultAdapter`)
 
 ## Adding a New CLI Adapter
 
@@ -165,7 +166,7 @@ this.registerIfEnabled("ollamaNative", () => new OllamaNativeAdapter());
 
 ### Step 4: Test
 
-Write tests in `tests/adapters/ollama-native.test.ts` covering `executeRun`, `stream`, and `healthCheck`.
+Write tests in `tests/unit/` (e.g. add cases to `tests/unit/adapters.test.ts`) covering `executeRun`, `stream`, and `healthCheck`.
 
 ## Adding an API Adapter (No CLI)
 

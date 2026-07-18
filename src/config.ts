@@ -23,6 +23,11 @@ export interface Config {
   };
   defaultAdapter: string;
   maxOutputChars: number;
+  maxRequestTimeoutMs: number;
+  docs: {
+    enabled: boolean;
+    routePrefix: string;
+  };
   logLevel: string;
 }
 
@@ -69,6 +74,11 @@ const defaults: Config = {
   },
   defaultAdapter: "copilot",
   maxOutputChars: 1_000_000,
+  maxRequestTimeoutMs: 600_000,
+  docs: {
+    enabled: true,
+    routePrefix: "/docs",
+  },
   logLevel: "info",
 };
 
@@ -129,6 +139,9 @@ export function loadConfig(): Config {
   }
   if (process.env.LOG_LEVEL) {
     merged.logLevel = process.env.LOG_LEVEL;
+  }
+  if (process.env.DOCS_ENABLED) {
+    merged.docs.enabled = process.env.DOCS_ENABLED !== "false" && process.env.DOCS_ENABLED !== "0";
   }
 
   return merged;

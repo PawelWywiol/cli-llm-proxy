@@ -20,12 +20,13 @@ export class ClaudeAdapter extends BaseAdapter {
 
   protected async executeRun(opts: AdapterRunOptions): Promise<AdapterResult> {
     const prompt = buildFullPrompt(opts.messages as ChatMessage[]);
-    const args = [...this.cfg.extraArgs, "--print", prompt];
+    const args = [...this.cfg.extraArgs, "--print"];
 
     const result = await runCli({
       command: this.cfg.command,
       args,
-      timeoutMs: this.cfg.timeoutMs,
+      stdin: prompt,
+      timeoutMs: opts.timeoutMs ?? this.cfg.timeoutMs,
       maxOutputChars: config.maxOutputChars,
     });
 
@@ -43,12 +44,13 @@ export class ClaudeAdapter extends BaseAdapter {
 
   stream(opts: AdapterRunOptions): StreamEmitter {
     const prompt = buildFullPrompt(opts.messages as ChatMessage[]);
-    const args = [...this.cfg.extraArgs, "--print", prompt];
+    const args = [...this.cfg.extraArgs, "--print"];
 
     return streamCli({
       command: this.cfg.command,
       args,
-      timeoutMs: this.cfg.timeoutMs,
+      stdin: prompt,
+      timeoutMs: opts.timeoutMs ?? this.cfg.timeoutMs,
     });
   }
 
